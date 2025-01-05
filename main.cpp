@@ -8,13 +8,15 @@ struct Traits {
 // forward declaration
 template<typename T> struct Expression;
 
-template<typename T, typename L, typename R>
-struct Sum : Expression<Sum<T, L, R>>
+template<typename L, typename R>
+struct Sum : Expression<Sum<L, R>>
 {
-    using Scalar = T;
+    using Scalar = typename Traits<L>::Scalar;
     explicit Sum(const L& l, const R& r) : left(l), right(r) {}
 
-    constexpr Scalar operator[](const int idx);
+    constexpr Scalar operator[](const int idx) {
+        return left[idx] + right[idx];
+    }
 
     L left;
     R right;
@@ -24,12 +26,14 @@ template<typename T>
 struct Expression {
     using Scalar = typename Traits<T>::Scalar;
 
-    Scalar operator[](const int idx) {
+    Scalar operator[](const int idx) const {
         return static_cast<T*>(this)->operator[](idx);
     }
 
     template<typename S>
-    constexpr Sum<Scalar, Expression<T>, Expression<S>> operator+(const Expression<S>& other) const;
+    constexpr Sum<Expression<T>, Expression<S>> operator+(const Expression<S>& other) const {
+        return Sum<Expression<T>, Expression<S>>(*this, other);
+    }
 };
 
 template<typename T>
@@ -40,10 +44,14 @@ struct Vector : Expression<Vector<T>>
 
     Scalar x, y, z;
 
-    constexpr Sum<Scalar, Base, Base> operator+(const Base& other);
+    constexpr Sum<Base, Base> operator+(const Base& other) {
+        return Sum<Base, Base>(*this, other);
+    }
 
     template<typename R>
-    constexpr Sum<Scalar, Base, Sum<Scalar, Base, R>> operator+(const Sum<Scalar, Base, R>& other);
+    constexpr Sum<Base, Sum<Base, R>> operator+(const Sum<Base, R>& other) {
+        return Sum<Base, Sum<Base, R>>(*this, other);
+    }
 
     // base constructor
     Vector(Scalar x, Scalar y, Scalar z) : x(x), y(y), z(z) {}
@@ -53,40 +61,16 @@ struct Vector : Expression<Vector<T>>
 };
 
 template <typename T>
-struct Traits<Vector<T>> {
+struct Traits<Vector<T>>
+{
     using Scalar = T;
 };
 
-template<typename T, typename L, typename R>
-struct Traits<Sum<T, L, R>> {
-    using Scalar = T;
+template<typename L, typename R>
+struct Traits<Sum<L, R>>
+{
+    using Scalar = typename Traits<L>::Scalar;
 };
-
-template<typename T, typename L, typename R>
-constexpr T Sum<T, L, R>::operator[](const int idx) {
-    return left[idx] + right[idx];
-}
-
-template<typename T>
-template<typename S>
-constexpr Sum<typename Traits<T>::Scalar, Expression<T>, Expression<S>> Expression<T>::operator+(const Expression<S>& other) const {
-    return Sum<typename Traits<T>::Scalar, Expression<T>, Expression<S>>(*this, other);
-}
-
-template<typename T>
-constexpr Sum<T, Vector<T>, Vector<T>> Vector<T>::operator+(const Vector<T>& other)
-{
-    return Sum<T, Vector<T>, Vector<T>>(*this, other);
-}
-
-template<typename T>
-template<typename R>
-constexpr
-Sum<T, Vector<T>, Sum<T, Vector<T>, R>>
-Vector<T>::operator+(const Sum<T, Vector<T>, R>& other)
-{
-    return Sum<T, Vector<T>, Sum<T, Vector<T>, R>>(*this, other);
-}
 
 template<typename T>
 void Vector<T>::print()
@@ -114,7 +98,7 @@ int main()
 {
     Vector<int> v(1,2,3), w(2,3,4), l(4,5,6), r(12,13,16);
 
-    auto u = v + w + l + r;
+    auto u = v + (w + (l + r));
     auto sumVec = Vector<int>(u[0], u[1], u[2]);
     sumVec.print();
 
