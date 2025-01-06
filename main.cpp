@@ -1,7 +1,8 @@
 #include <iostream>
 
 template <typename T>
-struct Traits {
+struct Traits
+{
     using Scalar = typename T::Scalar;
 };
 
@@ -13,21 +14,17 @@ template<typename L, typename R>
 struct Sum : Expression<Sum<L, R>>
 {
     using Scalar = typename Traits<L>::Scalar;
+
     Sum(const L& l, const R& r) : left(l), right(r) {}
     Sum(const Sum<L, R>& other) : left(other.left), right(other.right) {}
     Sum(const Sum<L, R>&& other) : left(other.left), right(other.right) {}
 
-    constexpr Scalar operator[](const int idx) {
+    constexpr Scalar operator[](const int idx) const {
         return left[idx] + right[idx];
     }
 
-    constexpr Sum<Sum<L, R>, Vector<Scalar>> operator+(const Vector<Scalar>& other) const {
-        return Sum<Sum<L, R>, Vector<Scalar>>(*this, other);
-    }
-
-    template<typename L1, typename R1>
-    constexpr Sum<Sum<L, R>, Sum<L1, R1>> operator+(const Sum<L1, R1>& other) const {
-        return Sum<Sum<L, R>, Sum<L1, R1>>(*this, other);
+    Vector<Scalar> evaluate() const {
+        return Vector<Scalar>(operator[](0), operator[](1), operator[](2));
     }
 
     L left;
@@ -38,32 +35,30 @@ template<typename T>
 struct Expression {
     using Scalar = typename Traits<T>::Scalar;
 
-    Scalar operator[](const int idx) const {
+    constexpr Scalar operator[](const int idx) const {
         return static_cast<T*>(this)->operator[](idx);
     }
+
+    template<typename S>
+    constexpr Sum<T, S> operator+(const Expression<S>& other) const {
+        return Sum<T, S>(static_cast<const T&>(*this), static_cast<const S&>(other));
+    }
+
 };
 
-template<typename T>
-struct Vector : Expression<Vector<T>>
+template<typename Scalar>
+struct Vector : Expression<Vector<Scalar>>
 {
-    using Scalar = T;
     using Base = Vector<Scalar>;
 
     Scalar x, y, z;
 
-    constexpr Sum<Base, Base> operator+(const Base& other) {
-        return Sum<Base, Base>(*this, other);
-    }
-
-    template<typename R>
-    constexpr Sum<Base, Sum<Base, R>> operator+(const Sum<Base, R>& other) {
-        return Sum<Base, Sum<Base, R>>(*this, other);
-    }
-
     // base constructor
     Vector(Scalar x, Scalar y, Scalar z) : x(x), y(y), z(z) {}
+    Vector(const Base& other) : x(other.x), y(other.y), z(other.z) {}
+    Vector(const Base&& other) : x(other.x), y(other.y), z(other.z) {}
 
-    Scalar operator[](const int idx) {
+    constexpr Scalar operator[](const int idx) const {
         switch (idx)
         {
             case 0:
@@ -98,8 +93,8 @@ int main()
 {
     Vector<int> v(1,2,3), w(2,3,4), l(4,5,6), r(12,13,16), a(23,42,53);
 
-    auto u = (a + v) + (w + l + r);
-    auto sumVec = Vector<int>(u[0], u[1], u[2]);
+    auto u = r + (a + v) + (w + l);
+    auto sumVec = u.evaluate();
     sumVec.print();
 
     return 0;

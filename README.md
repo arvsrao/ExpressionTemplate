@@ -1,6 +1,6 @@
 # Expression Template
 
-## Goal:
+## Goal
 
 When naively adding several vectors 
 
