@@ -17,7 +17,7 @@ product of matrices. This project is a toy demonstration of what [Eigen][2] does
 creating temporary objects.
 
 ## References
-[Slides][1] from a presentation of [Eigen][2] at Ecole Polytechnique.
+[Slides][1] from an [Eigen][2] tutorial for computer graphics.
 
 
 [1]: http://downloads.tuxfamily.org/eigen/eigen_CGLibs_Giugno_Pisa_2013.pdf
